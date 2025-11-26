@@ -25,7 +25,7 @@
     <main>
         <section class="page-header">
             <h1>Meus Serviços Publicados</h1>
-            <p>Aqui você pode editar ou excluir os serviços que cadastrou.</p>
+            <p>Gerencie seus serviços e veja quem está interessado no seu trabalho.</p>
         </section>
 
         <section class="search-section-simple">
@@ -70,6 +70,21 @@
                 </div>
                 <button type="submit" class="btn btn-primary save-btn">Salvar Alterações</button>
             </form>
+        </div>
+    </div>
+
+    <div id="interestedModal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close-btn" id="interestedModalCloseBtn">&times;</button>
+            <h2>Pessoas Interessadas</h2>
+            <p class="modal-subtitle">Entre em contato para fechar negócio!</p>
+            
+            <div id="interestedLoader" class="loader" style="display: none;">
+                <div class="spinner"></div>
+            </div>
+
+            <div id="interestedList" class="interested-list">
+                </div>
         </div>
     </div>
     
