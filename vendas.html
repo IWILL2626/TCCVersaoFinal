@@ -4,13 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>I Will - Página de Vendas</title>
+    
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <link rel="stylesheet" href="css/vendas.css">
     <link rel="stylesheet" href="css/config.css">
     <link rel="stylesheet" href="css/dark-mode.css">
 </head>
 <body>
+    
     <header>
         <div class="logo">
             <img src="img/icon.png" alt="Ícone I Will" class="logo-to-toggle" id="header-logo">
@@ -23,23 +26,16 @@
             </button>
             
             <div class="notification-container">
-                <button class="notification-btn" id="notificationBtn" aria-label="Notificações">
+                <button class="notification-btn" id="notificationBtnDesktop" aria-label="Notificações">
                     <i class="fas fa-bell"></i>
-                    <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+                    <span class="notification-badge" id="notificationBadgeDesktop" style="display: none;">0</span>
                 </button>
-                <div class="notification-dropdown" id="notificationDropdown">
-                    <div class="notification-header">
-                        <h3>Notificações</h3>
-                    </div>
-                    <div class="notification-list" id="notificationList">
-                        <p class="no-notifications">Nenhuma notificação nova.</p>
-                    </div>
-                </div>
             </div>
 
             <button id="logoutBtnNav" class="btn btn-secondary">
                 <i class="fas fa-sign-out-alt"></i> Sair
             </button>
+
             <div class="settings-menu-container">
                 <button class="settings-btn" id="settingsBtn" aria-label="Configurações">
                     <i class="fas fa-cog"></i>
@@ -51,7 +47,6 @@
                     <a href="meus-servicos.html" class="dropdown-link">
                         <i class="fas fa-briefcase"></i> Meus Serviços
                     </a>
-                    
                     <a href="perfil.html" class="dropdown-link">
                         <i class="fas fa-user"></i> Perfil
                     </a>
@@ -68,20 +63,40 @@
                             <i class="fas fa-shield-halved"></i> Painel Admin
                         </a>
                     </div>
-
                 </div>
             </div>
         </nav>
 
-        <button class="mobile-menu-icon" id="mobileMenuIcon" aria-label="Abrir menu">
-            <i class="fas fa-bars"></i>
-        </button>
+        <div class="mobile-actions">
+            <button class="notification-btn mobile-notif-btn" id="notificationBtnMobile" aria-label="Notificações">
+                <i class="fas fa-bell"></i>
+                <span class="notification-badge" id="notificationBadgeMobile" style="display: none;">0</span>
+            </button>
+
+            <button class="mobile-menu-icon" id="mobileMenuIcon" aria-label="Abrir menu">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+
+        <div class="notification-dropdown" id="notificationDropdown">
+            <div class="notification-header">
+                <h3>Notificações</h3>
+            </div>
+            <div class="notification-list" id="notificationList">
+                <p class="no-notifications">Nenhuma notificação nova.</p>
+            </div>
+        </div>
+
     </header>
 
     <nav class="mobile-nav" id="mobileNav">
         <button class="btn btn-primary" onclick="window.location.href='cadProduto.html'">
             <i class="fas fa-plus-circle"></i> Novo Serviço
         </button>
+        
+        <a href="meus-servicos.html" class="mobile-link">
+            <i class="fas fa-briefcase"></i> Meus Serviços
+        </a>
         <a href="perfil.html" class="mobile-link">
             <i class="fas fa-user"></i> Perfil
         </a>
@@ -159,21 +174,30 @@
                 <a href="privacidade.html" class="footer-link">Privacidade</a>
             </div>
             <div class="footer-social">
-                <a href="https://www.instagram.com/_vmasscz/" class="social-icon" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
-                <a href="#" class="social-icon" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
-                <a href="#" class="social-icon" aria-label="Facebook"><i class="fab fa-facebook"></i></a>
+                <a href="https://www.instagram.com/_vmasscz/" class="social-icon" aria-label="Instagram">
+                    <i class="fab fa-instagram"></i>
+                </a>
+                <a href="#" class="social-icon" aria-label="WhatsApp">
+                    <i class="fab fa-whatsapp"></i>
+                </a>
+                <a href="#" class="social-icon" aria-label="Facebook">
+                    <i class="fab fa-facebook"></i>
+                </a>
             </div>
         </div>
         <div class="footer-copyright">
             <p>&copy; 2025 I Will - Plataforma de Serviços para Alunos da Etec. Todos os direitos reservados.</p>
         </div>
     </footer>
+
     <div id="productModal" class="modal-overlay">
         <div class="modal-content">
             <button id="modalCloseBtn" class="modal-close-btn">&times;</button>
+            
             <div id="modalLoader" class="loader" style="display: none;">
                 <div class="spinner"></div>
             </div>
+            
             <div id="modalBody">
                 </div>
         </div>

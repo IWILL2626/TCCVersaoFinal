@@ -1,4 +1,4 @@
-// javascript/vendas.js - VERSÃO FINAL COM FILTRO 'CURTIDOS POR MIM'
+// javascript/vendas.js - VERSÃO CORRIGIDA (Sino Desktop + Mobile)
 
 // Configuração do Firebase
 const firebaseConfig = {
@@ -32,11 +32,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const categoryFilter = document.getElementById('categoryFilter');
     const sortFilter = document.getElementById('sortFilter');
     
-    // Elementos de Notificação
-    const notificationBtn = document.getElementById('notificationBtn');
+    // --- CORREÇÃO AQUI: Pegando os DOIS botões (Desktop e Mobile) ---
+    const notificationBtnDesktop = document.getElementById('notificationBtnDesktop');
+    const notificationBtnMobile = document.getElementById('notificationBtnMobile');
     const notificationDropdown = document.getElementById('notificationDropdown');
     const notificationList = document.getElementById('notificationList');
-    const notificationBadge = document.getElementById('notificationBadge');
+    
+    // Badges (Bolinhas vermelhas)
+    const notificationBadgeDesktop = document.getElementById('notificationBadgeDesktop');
+    const notificationBadgeMobile = document.getElementById('notificationBadgeMobile');
 
     let allProducts = [];
     let currentUser = null;
@@ -78,6 +82,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ===========================================================
+    // ============ FUNÇÃO DE VERIFICAÇÃO DE PERFIL ==============
+    // ===========================================================
+    
+    const checkProfileCompleteness = (user) => {
+        if (!user) return false;
+        const hasName = user.nome && user.nome.trim() !== "";
+        const hasPhone = user.telefone && user.telefone.trim() !== "";
+        const hasClass = user.turma && user.turma.trim() !== "";
+        const hasPhoto = user.imagemPerfil && user.imagemPerfil.trim() !== "";
+        return hasName && hasPhone && hasClass && hasPhoto;
+    };
+
+    // ===========================================================
     // ============ SISTEMA DE NOTIFICAÇÕES ======================
     // ===========================================================
 
@@ -114,12 +131,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderNotifications(notifications);
                 
                 const unreadCount = notifications.filter(n => !n.lida).length;
-                if (unreadCount > 0) {
-                    notificationBadge.style.display = 'flex';
-                    notificationBadge.innerText = unreadCount > 9 ? '9+' : unreadCount;
-                } else {
-                    notificationBadge.style.display = 'none';
-                }
+                
+                // Atualiza AMBOS os badges (Desktop e Mobile)
+                [notificationBadgeDesktop, notificationBadgeMobile].forEach(badge => {
+                    if (badge) {
+                        if (unreadCount > 0) {
+                            badge.style.display = 'flex';
+                            badge.innerText = unreadCount > 9 ? '9+' : unreadCount;
+                        } else {
+                            badge.style.display = 'none';
+                        }
+                    }
+                });
             });
     };
 
@@ -159,13 +182,23 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    notificationBtn.addEventListener('click', (e) => {
+    // --- CORREÇÃO AQUI: Função única para abrir o dropdown ---
+    const toggleDropdown = (e) => {
         e.stopPropagation();
         notificationDropdown.classList.toggle('show');
-    });
+    };
 
+    // Adiciona o evento nos DOIS botões (se existirem na tela)
+    if(notificationBtnDesktop) notificationBtnDesktop.addEventListener('click', toggleDropdown);
+    if(notificationBtnMobile) notificationBtnMobile.addEventListener('click', toggleDropdown);
+
+    // Fecha ao clicar fora
     window.addEventListener('click', (e) => {
-        if (!notificationDropdown.contains(e.target) && !notificationBtn.contains(e.target)) {
+        const isClickInside = notificationDropdown.contains(e.target) || 
+                              (notificationBtnDesktop && notificationBtnDesktop.contains(e.target)) ||
+                              (notificationBtnMobile && notificationBtnMobile.contains(e.target));
+        
+        if (!isClickInside) {
             notificationDropdown.classList.remove('show');
         }
     });
@@ -234,7 +267,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     sendNotification(productDoc, 'like');
                 }
             }
-            // Re-aplica os filtros para atualizar a lista se o usuário estiver no filtro "Curtidos por mim"
             applyFilters();
         } catch (error) {
             console.error("Erro ao atualizar curtida:", error);
@@ -277,9 +309,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 <i class="fas fa-check-circle"></i> Tenho Interesse
             </button>`;
 
+        const isVerified = seller && checkProfileCompleteness(seller);
+        const verifiedBadge = isVerified ? '<i class="fas fa-check-circle verified-badge" title="Perfil Verificado"></i>' : '';
+
         let sellerHtml = seller ? `
             <div class="modal-seller-info"><h3>Informações de Contato</h3>
-            <div class="seller-detail"><i class="fas fa-user"></i><span>${seller.nome || 'Não informado'}</span></div>
+            <div class="seller-detail"><i class="fas fa-user"></i><span>${seller.nome || 'Não informado'} ${verifiedBadge}</span></div>
             <div class="seller-detail"><i class="fas fa-users"></i><span>${seller.turma || 'Não informada'}</span></div>
             <div class="seller-detail"><i class="fas fa-envelope"></i><span>${seller.email || 'Não informado'}</span></div>
             <div class="seller-detail"><i class="fas fa-phone"></i><span>${seller.telefone || 'Não informado'}</span></div></div>`
@@ -299,11 +334,25 @@ document.addEventListener('DOMContentLoaded', () => {
             ${sellerHtml}`;
     };
 
-    const renderProducts = (productsToRender) => {
+    const renderProducts = async (productsToRender) => {
         productGrid.innerHTML = '';
         if (productsToRender.length === 0) {
             productGrid.innerHTML = "<p>Nenhum serviço encontrado.</p>";
             return;
+        }
+
+        const sellerIds = [...new Set(productsToRender.map(p => p.vendedorId))];
+        const sellersMap = {};
+
+        try {
+            const sellerPromises = sellerIds.map(id => db.collection('vendedores').doc(id).get());
+            const sellerSnapshots = await Promise.all(sellerPromises);
+            
+            sellerSnapshots.forEach(doc => {
+                if (doc.exists) sellersMap[doc.id] = doc.data();
+            });
+        } catch (error) {
+            console.error("Erro ao buscar vendedores:", error);
         }
 
         productsToRender.forEach((product) => {
@@ -316,6 +365,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const isLiked = product.interestedUsers && product.interestedUsers.includes(currentUser.uid);
             const heartIconClass = isLiked ? 'fas fa-heart' : 'far fa-heart';
             const likedClass = isLiked ? 'liked' : '';
+
+            const seller = sellersMap[product.vendedorId];
+            const isVerified = checkProfileCompleteness(seller);
+            const verifiedBadge = isVerified ? '<i class="fas fa-check-circle verified-badge" title="Perfil Verificado"></i>' : '';
 
             const likeButtonHtml = `
                 <div class="like-container">
@@ -339,7 +392,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="product-price">${precoFormatado}</div>
                 </div>
                 <div class="product-info">
-                    <div class="product-seller"><span>${product.vendedor || 'Vendedor não informado'}</span></div>
+                    <div class="product-seller"><span>${product.vendedor || 'Vendedor não informado'}</span> ${verifiedBadge}</div>
                     <h4 class="product-title">Eu vou ${product.nome}</h4>
                     <p class="product-description-card">${product.descricao ? product.descricao.substring(0, 60) + '...' : ''}</p>
                 </div>`;
@@ -392,7 +445,6 @@ document.addEventListener('DOMContentLoaded', () => {
             (!selectedCategory || product.categoria === selectedCategory)
         );
 
-        // --- LÓGICA NOVA DE FILTRO 'LIKED-BY-ME' ---
         if (selectedSort === 'liked-by-me') {
             if (currentUser) {
                 filteredProducts = filteredProducts.filter(product => 
@@ -403,7 +455,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // --- LÓGICA DE ORDENAÇÃO ---
         if (selectedSort === 'most-liked') {
             filteredProducts.sort((a, b) => {
                 const likesA = a.interestedUsers ? a.interestedUsers.length : 0;
@@ -417,7 +468,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return likesA - likesB;
             });
         } else {
-            // Padrão: Mais recentes (inclusive para 'liked-by-me')
              filteredProducts.sort((a, b) => {
                 const dateA = a.criadoEm ? a.criadoEm.seconds : 0;
                 const dateB = b.criadoEm ? b.criadoEm.seconds : 0;
