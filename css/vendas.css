@@ -472,11 +472,10 @@ main {
 /* --- AJUSTE PARA O CARD: BOTÕES DE LIKE E INTERESSE --- */
 .product-meta {
     display: flex;
-    /* Alterado para space-between para separar os botões (interesse na esq, like na dir) */
-    justify-content: space-between; 
+    justify-content: space-between; /* Separa os botões */
     align-items: center;
     margin-top: auto;
-    padding: 0.8rem 1rem; /* Aumentei um pouco o padding */
+    padding: 0.8rem 1rem;
     border-top: 1px solid var(--light-gray);
 }
 
@@ -484,6 +483,24 @@ main {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+}
+
+.product-rating {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--text-light);
+    font-weight: 600;
+}
+
+.product-rating .fa-star.filled {
+    color: var(--star-color);
+}
+
+.product-rating-none {
+    color: var(--text-light);
+    font-style: italic;
+    font-size: 0.9rem;
 }
 
 /* Animations */
