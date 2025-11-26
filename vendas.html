@@ -13,7 +13,7 @@
 <body>
     <header>
         <div class="logo">
-            <img src="img/icon.png" alt="Ícone I Will" class="logo-to-toggle">
+            <img src="img/icon.png" alt="Ícone I Will" class="logo-to-toggle" id="header-logo">
             <span>I Will</span>
         </div>
         
@@ -21,6 +21,23 @@
             <button class="btn btn-primary" onclick="window.location.href='cadProduto.html'">
                 <i class="fas fa-plus-circle"></i> Novo Serviço
             </button>
+            
+            <div class="notification-container">
+                <button class="notification-btn" id="notificationBtn" aria-label="Notificações">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+                </button>
+                <div class="notification-dropdown" id="notificationDropdown">
+                    <div class="notification-header">
+                        <h3>Notificações</h3>
+                        <button id="markAllReadBtn" style="display: none;">Marcar tudo como lido</button>
+                    </div>
+                    <div class="notification-list" id="notificationList">
+                        <p class="no-notifications">Nenhuma notificação nova.</p>
+                    </div>
+                </div>
+            </div>
+
             <button id="logoutBtnNav" class="btn btn-secondary">
                 <i class="fas fa-sign-out-alt"></i> Sair
             </button>

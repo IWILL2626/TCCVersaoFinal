@@ -1,4 +1,4 @@
-// javascript/vendas.js - VERSÃO COM ORDENAÇÃO E CONTADOR DE LIKES
+// javascript/vendas.js - VERSÃO FINAL COM NOTIFICAÇÕES
 
 // Configuração do Firebase
 const firebaseConfig = {
@@ -30,7 +30,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const loader = document.getElementById('loader');
     const searchInput = document.getElementById('searchInput');
     const categoryFilter = document.getElementById('categoryFilter');
-    const sortFilter = document.getElementById('sortFilter'); // Novo seletor de ordenação
+    const sortFilter = document.getElementById('sortFilter');
+    
+    // Elementos de Notificação
+    const notificationBtn = document.getElementById('notificationBtn');
+    const notificationDropdown = document.getElementById('notificationDropdown');
+    const notificationList = document.getElementById('notificationList');
+    const notificationBadge = document.getElementById('notificationBadge');
+    const markAllReadBtn = document.getElementById('markAllReadBtn');
 
     let allProducts = [];
     let currentUser = null;
@@ -67,8 +74,111 @@ document.addEventListener('DOMContentLoaded', () => {
             currentUser = user;
             checkAdminStatus(user);
             loadProductsFromFirestore();
+            loadNotifications(user.uid); // Carrega notificações ao logar
         }
     });
+
+    // ===========================================================
+    // ============ SISTEMA DE NOTIFICAÇÕES ======================
+    // ===========================================================
+
+    // 1. Função para enviar notificação ao dono do produto
+    const sendNotification = async (product, type) => {
+        if (!product || product.vendedorId === currentUser.uid) return; // Não notifica a si mesmo
+
+        try {
+            const userData = await db.collection('vendedores').doc(currentUser.uid).get();
+            const userName = userData.exists ? userData.data().nome : "Alguém";
+
+            await db.collection('notificacoes').add({
+                destinatarioId: product.vendedorId,
+                remetenteId: currentUser.uid,
+                remetenteNome: userName,
+                produtoId: product.id,
+                produtoNome: product.nome,
+                tipo: type, // 'like' ou 'interest'
+                lida: false,
+                data: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            console.log("Notificação enviada com sucesso!");
+        } catch (error) {
+            console.error("Erro ao enviar notificação:", error);
+        }
+    };
+
+    // 2. Função para carregar notificações do usuário
+    const loadNotifications = (userId) => {
+        db.collection('notificacoes')
+            .where('destinatarioId', '==', userId)
+            .orderBy('data', 'desc')
+            .limit(20)
+            .onSnapshot(snapshot => {
+                const notifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderNotifications(notifications);
+                
+                // Atualiza o badge (bolinha vermelha)
+                const unreadCount = notifications.filter(n => !n.lida).length;
+                if (unreadCount > 0) {
+                    notificationBadge.style.display = 'flex';
+                    notificationBadge.innerText = unreadCount > 9 ? '9+' : unreadCount;
+                } else {
+                    notificationBadge.style.display = 'none';
+                }
+            });
+    };
+
+    // 3. Renderiza a lista de notificações
+    const renderNotifications = (notifications) => {
+        notificationList.innerHTML = '';
+        if (notifications.length === 0) {
+            notificationList.innerHTML = '<p class="no-notifications">Nenhuma notificação nova.</p>';
+            return;
+        }
+
+        notifications.forEach(notif => {
+            const div = document.createElement('div');
+            div.className = `notification-item ${notif.lida ? '' : 'unread'}`;
+            
+            let message = "";
+            if (notif.tipo === 'like') {
+                message = `<strong>${notif.remetenteNome}</strong> curtiu seu serviço <strong>"${notif.produtoNome}"</strong>.`;
+            }
+
+            // Formata a data
+            const date = notif.data ? notif.data.toDate() : new Date();
+            const timeString = date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' às ' + date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+            div.innerHTML = `
+                <p class="notif-text">${message}</p>
+                <span class="notif-time">${timeString}</span>
+            `;
+            
+            // Ao clicar, marca como lida
+            div.addEventListener('click', async () => {
+                if (!notif.lida) {
+                    await db.collection('notificacoes').doc(notif.id).update({ lida: true });
+                }
+            });
+
+            notificationList.appendChild(div);
+        });
+    };
+
+    // 4. Toggle do Dropdown
+    notificationBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        notificationDropdown.classList.toggle('show');
+    });
+
+    // Fecha dropdown ao clicar fora
+    window.addEventListener('click', (e) => {
+        if (!notificationDropdown.contains(e.target) && !notificationBtn.contains(e.target)) {
+            notificationDropdown.classList.remove('show');
+        }
+    });
+
+    // ===========================================================
+    // ===========================================================
 
     const handleLikeClick = async (button) => {
         if (!currentUser) {
@@ -79,12 +189,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const productId = button.dataset.productId;
         const isLiked = button.classList.contains('liked');
         const productRef = db.collection('produtos').doc(productId);
-        
-        // Seleciona o contador de likes associado a este botão
         const likeCountSpan = button.parentElement.querySelector('.like-count');
         let currentCount = parseInt(likeCountSpan.innerText) || 0;
 
-        // Atualização Visual Otimista (antes do Firebase responder)
+        // Atualização Visual
         document.querySelectorAll(`.like-btn[data-product-id="${productId}"]`).forEach(btn => {
             const span = btn.parentElement.querySelector('.like-count');
             btn.classList.toggle('liked');
@@ -92,10 +200,8 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.querySelector('i').classList.toggle('fas');
             
             if (isLiked) {
-                // Se estava curtido e clicou, remove like
                 if (span) span.innerText = Math.max(0, currentCount - 1);
             } else {
-                // Se não estava curtido e clicou, adiciona like e animação
                 if (span) span.innerText = currentCount + 1;
                 btn.classList.add('pulse-animation');
                 setTimeout(() => btn.classList.remove('pulse-animation'), 300);
@@ -103,27 +209,24 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         try {
+            const productDoc = allProducts.find(p => p.id === productId);
+
             if (isLiked) {
                 await productRef.update({ interestedUsers: firebase.firestore.FieldValue.arrayRemove(currentUser.uid) });
-                // Atualiza o array local para que a ordenação funcione sem recarregar
-                const product = allProducts.find(p => p.id === productId);
-                if(product && product.interestedUsers) {
-                    product.interestedUsers = product.interestedUsers.filter(uid => uid !== currentUser.uid);
+                if(productDoc && productDoc.interestedUsers) {
+                    productDoc.interestedUsers = productDoc.interestedUsers.filter(uid => uid !== currentUser.uid);
                 }
             } else {
                 await productRef.update({ interestedUsers: firebase.firestore.FieldValue.arrayUnion(currentUser.uid) });
-                // Atualiza o array local
-                const product = allProducts.find(p => p.id === productId);
-                if(product) {
-                    if(!product.interestedUsers) product.interestedUsers = [];
-                    product.interestedUsers.push(currentUser.uid);
+                if(productDoc) {
+                    if(!productDoc.interestedUsers) productDoc.interestedUsers = [];
+                    productDoc.interestedUsers.push(currentUser.uid);
+                    // Envia notificação apenas se deu like
+                    sendNotification(productDoc, 'like');
                 }
             }
-            // Re-aplica filtros para reordenar se necessário (opcional, pode ser confuso para o usuário se o item pular na hora)
-            // applyFilters(); 
         } catch (error) {
             console.error("Erro ao atualizar curtida:", error);
-            // Reverte visual em caso de erro (seria ideal implementar, mas simplificado aqui)
             alert("Erro ao atualizar curtida. Verifique sua conexão.");
         }
     };
@@ -237,11 +340,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadProductsFromFirestore = async () => {
         loader.style.display = 'flex';
         try {
-            // Carrega sempre ordenado por data inicialmente
             const snapshot = await db.collection('produtos').orderBy('criadoEm', 'desc').get();
             allProducts = snapshot.empty ? [] : snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             populateCategoryFilter(allProducts);
-            renderProducts(allProducts); // Renderiza a ordem inicial (recente)
+            renderProducts(allProducts);
         } catch (error) {
             console.error("Erro ao carregar produtos:", error);
         } finally {
@@ -252,32 +354,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const applyFilters = () => {
         const searchTerm = searchInput.value.toLowerCase();
         const selectedCategory = categoryFilter.value;
-        const selectedSort = sortFilter.value; // Pega o valor do novo filtro
+        const selectedSort = sortFilter.value;
 
-        // 1. Filtra
         let filteredProducts = allProducts.filter(product =>
             (!searchTerm || (product.nome && product.nome.toLowerCase().includes(searchTerm)) || (product.descricao && product.descricao.toLowerCase().includes(searchTerm))) &&
             (!selectedCategory || product.categoria === selectedCategory)
         );
 
-        // 2. Ordena
         if (selectedSort === 'most-liked') {
-            // Ordena por número de likes (decrescente)
             filteredProducts.sort((a, b) => {
                 const likesA = a.interestedUsers ? a.interestedUsers.length : 0;
                 const likesB = b.interestedUsers ? b.interestedUsers.length : 0;
                 return likesB - likesA;
             });
         } else if (selectedSort === 'least-liked') {
-            // Ordena por número de likes (crescente)
             filteredProducts.sort((a, b) => {
                 const likesA = a.interestedUsers ? a.interestedUsers.length : 0;
                 const likesB = b.interestedUsers ? b.interestedUsers.length : 0;
                 return likesA - likesB;
             });
         } else {
-            // Padrão: Mais recentes (usa a data de criação se disponível)
-            // Como já carregamos do Firestore ordenado, se não tiver sort, assume a ordem original ou reordena aqui se necessário
              filteredProducts.sort((a, b) => {
                 const dateA = a.criadoEm ? a.criadoEm.seconds : 0;
                 const dateB = b.criadoEm ? b.criadoEm.seconds : 0;
@@ -306,7 +402,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     searchInput.addEventListener('input', applyFilters);
     categoryFilter.addEventListener('change', applyFilters);
-    sortFilter.addEventListener('change', applyFilters); // Adiciona listener para o novo filtro
+    sortFilter.addEventListener('change', applyFilters);
     
     const settingsBtn = document.getElementById('settingsBtn');
     if (settingsBtn) { settingsBtn.addEventListener('click', (event) => { event.stopPropagation(); document.getElementById('settingsDropdown').classList.toggle('show'); }); }
