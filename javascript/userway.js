@@ -7,7 +7,7 @@
    s.setAttribute("data-account", "5fjRnD1brN");
    
    // Força a posição para o Canto Inferior Direito
-   s.setAttribute("data-position", "4"); 
+    
    
    s.setAttribute("src", "https://cdn.userway.org/widget.js");
    (d.body || d.head).appendChild(s);
